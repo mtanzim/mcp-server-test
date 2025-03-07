@@ -7,8 +7,8 @@
     "weather": "./build/index.js"
   },
   "scripts": {
-    "dev": "npx tsx src/",
-    "typecheck": "npx tsc",
+    "dev": "tsx src/",
+    "typecheck": "tsc",
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\""
   },
   "files": [
