@@ -43,11 +43,7 @@ async function getWeather(url: string) {
     },
   };
 
-  const res = await fetch(url, options)
-    .then((res) => res.json())
-    .then((json) => console.log(json))
-    .catch((err) => console.error(err));
-
+  const res = await fetch(url, options).then((res) => res.json());
   const dailies = res?.timelines?.daily?.slice(0, 3);
 }
 

@@ -26,6 +26,22 @@ async function makeNWSRequest(url) {
         return null;
     }
 }
+const TOMORROW_API_KEY = process?.env?.["TOMORROW_API_KEY"];
+const get_api_tomorrow_url = ({ lat, long }) => `https://api.tomorrow.io/v4/weather/forecast?location=${lat},${long}&timestamps=1d&units=metri&apikey=${TOMORROW_API_KEY}`;
+async function getWeather(url) {
+    const options = {
+        method: "GET",
+        headers: {
+            accept: "application/json",
+            "accept-encoding": "deflate, gzip, br",
+        },
+    };
+    const res = await fetch(url, options)
+        .then((res) => res.json())
+        .then((json) => console.log(json))
+        .catch((err) => console.error(err));
+    const dailies = res?.timelines?.daily?.slice(0, 3);
+}
 // Format alert data
 function formatAlert(feature) {
     const props = feature.properties;

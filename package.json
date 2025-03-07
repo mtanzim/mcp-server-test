@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "npx tsx src/",
+    "typecheck": "npx tsc",
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\""
   },
   "files": [
