@@ -13,8 +13,6 @@ const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
 const TOKEN_PATH = path.join(process.cwd(), "token.json");
 const CREDENTIALS_PATH = path.join(process.cwd(), "credentials.json");
 
-console.log({ TOKEN_PATH, CREDENTIALS_PATH });
-
 /**
  * Reads previously authorized credentials from the save file.
  *
@@ -24,10 +22,9 @@ async function loadSavedCredentialsIfExist() {
   try {
     const content = await fs.readFile(TOKEN_PATH);
     const credentials = JSON.parse(content);
-    console.log({credentials})
     return google.auth.fromJSON(credentials);
   } catch (err) {
-    console.log(err)
+    console.log(err);
     return null;
   }
 }
@@ -55,7 +52,7 @@ async function saveCredentials(client) {
  * Load or request or authorization to call APIs.
  *
  */
-async function authorize() {
+export async function authorize() {
   let client = await loadSavedCredentialsIfExist();
   if (client) {
     return client;
@@ -91,4 +88,6 @@ async function listLabels(auth) {
   });
 }
 
-authorize().then(listLabels).catch(console.error);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  authorize().then(listLabels).catch(console.error);
+}
