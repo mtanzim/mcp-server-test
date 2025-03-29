@@ -9,7 +9,7 @@ dotenv.config();
 
 // Create server instance
 const server = new McpServer({
-  name: "weather",
+  name: "Tanzim's tools",
   version: "1.0.0",
 });
 
@@ -83,7 +83,7 @@ server.tool(
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.log("Weather MCP Server running on stdio");
+  console.log("Tanzim's MCP Server running on stdio");
 }
 
 main().catch((error) => {
