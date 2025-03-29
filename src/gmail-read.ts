@@ -6,22 +6,24 @@ import {
 
 import { authorize } from "./gmail-auth.js";
 
-async function listMessages(auth: Auth.OAuth2Client) {
+export async function listThreadSnippets(
+  auth: Auth.OAuth2Client
+): Promise<string> {
   const gmail = google.gmail({ version: "v1", auth });
-  const snippets = await getMessages(gmail);
+  const snippets = await getThreadSnippets(gmail);
   let snippetsSerialized: Record<string, string> = {};
   for (const [k, v] of snippets) {
     snippetsSerialized[k] = v.join("\n");
   }
-  console.log(JSON.stringify(snippetsSerialized, null, 2));
+  return Object.values(snippetsSerialized).join("\n\n\n");
 }
 
-async function getMessages(
+async function getThreadSnippets(
   gmail: gmail_v1.Gmail,
   pageToken?: string,
   page = 0
 ): Promise<Map<string, string[]>> {
-  console.log({ page });
+  // console.log({ page });
   const res = await gmail.users.messages.list({
     userId: "me",
     q: "newer_than:3d",
@@ -34,7 +36,7 @@ async function getMessages(
   );
   const nextToken = res.data.nextPageToken;
   if (nextToken) {
-    const res = await getMessages(gmail, nextToken, page + 1);
+    const res = await getThreadSnippets(gmail, nextToken, page + 1);
     for (const [k, v] of res) {
       snippets.set(k, v);
     }
@@ -47,7 +49,7 @@ async function processMessageThreads(
   messages: gmail_v1.Schema$Message[]
 ): Promise<[Map<string, string[]>, Map<string, gmail_v1.Schema$Message[]>]> {
   if (!messages || messages?.length === 0) {
-    console.log("No labels found.");
+    // console.log("No labels found.");
     return [new Map(), new Map()];
   }
   const snippets = new Map<string, string[]>();
@@ -56,7 +58,7 @@ async function processMessageThreads(
   for (const m of messages) {
     const fullMessageRes = await getMessage(gmail, m);
     if (fullMessageRes.status !== 200) {
-      console.error(fullMessageRes.statusText);
+      // console.error(fullMessageRes.statusText);
       continue;
     }
     const fullMessage = fullMessageRes.data;
@@ -86,5 +88,5 @@ async function getMessage(gmail: gmail_v1.Gmail, m: gmail_v1.Schema$Message) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  authorize().then(listMessages).catch(console.error);
+  authorize().then(listThreadSnippets).catch(console.error).then(console.log);
 }

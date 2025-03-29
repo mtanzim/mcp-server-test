@@ -3,6 +3,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import * as dotenv from "dotenv";
 import { z } from "zod";
 import { getTomorrowWeatherForecast } from "./tomorrow.js";
+import { authorize } from "./gmail-auth.js";
+import { listThreadSnippets } from "./gmail-read.js";
 dotenv.config();
 
 // Create server instance
@@ -43,6 +45,35 @@ server.tool(
         {
           type: "text",
           text: forecastText,
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "gmail-snippets",
+  "Get my gmail snippets from threads from the last 3 days",
+  {
+    name: z.string().optional(),
+  },
+  async ({ name }) => {
+    let snippetText = "";
+    try {
+      snippetText = await authorize().then(listThreadSnippets);
+    } catch (err: unknown) {
+      console.error(err);
+      snippetText = "Something went wrong. Cannot get gmail message threads.";
+      if (err instanceof Error) {
+        snippetText = `${snippetText} Error: ${err.message}`;
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: snippetText,
         },
       ],
     };
