@@ -39,37 +39,41 @@ async function getThreadSnippets(
   if (nextToken) {
     const res = await getThreadSnippets(gmail, nextToken, page + 1);
     for (const [k, v] of res) {
-      const fullMessage = fullMessageRes.get(k);
-      const meta = {
-        senderAddress:
-          fullMessage
-            ?.at(-1)
-            ?.payload?.headers?.find((h) => h?.name?.startsWith("From:"))
-            ?.value || "",
-        subject:
-          fullMessage
-            ?.at(-1)
-            ?.payload?.headers?.find((h) => h?.name?.startsWith("Subject:"))
-            ?.value || "",
-        threadId: k,
-        messageId: fullMessage?.at(-1)?.id,
-      };
-      const snippetVals = v.map((vv) => {
-        return `
-        <body>
-        \`\`\`plaintext
-        ${vv}
-        \`\`\`
-        </body>
-        <metadata>
-        \`\`\`json
-        ${JSON.stringify(meta)}
-        \`\`\`
-        </metadata>
-        `;
-      });
-      snippets.set(k, snippetVals);
+      snippets.set(k, v);
     }
+  }
+  // modify the final snippets
+  for (const [k, v] of snippets) {
+    const fullMessage = fullMessageRes.get(k);
+    const meta = {
+      senderAddress:
+        fullMessage
+          ?.at(-1)
+          ?.payload?.headers?.find((h) => h?.name?.startsWith("From"))
+          ?.value || "",
+      subject:
+        fullMessage
+          ?.at(-1)
+          ?.payload?.headers?.find((h) => h?.name?.startsWith("Subject"))
+          ?.value || "",
+      threadId: k,
+      messageId: fullMessage?.at(-1)?.id,
+    };
+    const snippetVals = v.map((vv) => {
+      return `
+      <body>
+      \`\`\`plaintext
+      ${vv}
+      \`\`\`
+      </body>
+      <metadata>
+      \`\`\`json
+      ${JSON.stringify(meta)}
+      \`\`\`
+      </metadata>
+      `;
+    });
+    snippets.set(k, snippetVals);
   }
   return snippets;
 }
