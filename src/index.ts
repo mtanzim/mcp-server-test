@@ -100,8 +100,8 @@ server.tool(
   async ({ address, content, threadId, messageId, subject }) => {
     let draftResponse = "";
     try {
-      draftResponse = await authorize().then((client) =>
-        draftEmail({ client, address, content, threadId, messageId, subject })
+      draftResponse = await authorize().then((auth) =>
+        draftEmail(auth, { address, content, threadId, messageId, subject })
       );
     } catch (err: unknown) {
       console.error(err);
