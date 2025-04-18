@@ -5,6 +5,7 @@ import {
 } from "googleapis";
 
 import { authorize } from "./gmail-auth.js";
+import { threadId } from "worker_threads";
 
 export async function listThreadSnippets(
   auth: Auth.OAuth2Client
@@ -30,7 +31,7 @@ async function getThreadSnippets(
     pageToken: pageToken,
     maxResults: 10,
   });
-  const [snippets] = await processMessageThreads(
+  const [snippets, fullMessageRes] = await processMessageThreads(
     gmail,
     res.data?.messages || []
   );
@@ -38,7 +39,36 @@ async function getThreadSnippets(
   if (nextToken) {
     const res = await getThreadSnippets(gmail, nextToken, page + 1);
     for (const [k, v] of res) {
-      snippets.set(k, v);
+      const fullMessage = fullMessageRes.get(k);
+      const meta = {
+        senderAddress:
+          fullMessage
+            ?.at(-1)
+            ?.payload?.headers?.find((h) => h?.name?.startsWith("From:"))
+            ?.value || "",
+        subject:
+          fullMessage
+            ?.at(-1)
+            ?.payload?.headers?.find((h) => h?.name?.startsWith("Subject:"))
+            ?.value || "",
+        threadId: k,
+        messageId: fullMessage?.at(-1)?.id,
+      };
+      const snippetVals = v.map((vv) => {
+        return `
+        <body>
+        \`\`\`plaintext
+        ${vv}
+        \`\`\`
+        </body>
+        <metadata>
+        \`\`\`json
+        ${JSON.stringify(meta)}
+        \`\`\`
+        </metadata>
+        `;
+      });
+      snippets.set(k, snippetVals);
     }
   }
   return snippets;
@@ -58,7 +88,6 @@ async function processMessageThreads(
   for (const m of messages) {
     const fullMessageRes = await getMessage(gmail, m);
     if (fullMessageRes.status !== 200) {
-      // console.error(fullMessageRes.statusText);
       continue;
     }
     const fullMessage = fullMessageRes.data;

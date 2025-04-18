@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getTomorrowWeatherForecast } from "./tomorrow.js";
 import { authorize } from "./gmail-auth.js";
 import { listThreadSnippets } from "./gmail-read.js";
+import { draftEmail } from "./gmail-compose.js";
 dotenv.config();
 
 // Create server instance
@@ -13,6 +14,9 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
+server.resource({
+  name: "gmail authentication token",
+});
 server.tool(
   "get-forecast",
   "Get weather forecast for a location",
@@ -74,6 +78,44 @@ server.tool(
         {
           type: "text",
           text: snippetText,
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "gmail-draft-response",
+  "Creates draft responses to specified messages in Gmail.",
+  {
+    address: z
+      .string()
+      .email()
+      .describe("the address of the sended of the original email"),
+    content: z.string().describe("the content of the response"),
+    threadId: z.string().describe("the threadId of the original message"),
+    messageId: z.string().describe("the messageId of the original message"),
+    subject: z.string().describe("the subject of the original message"),
+  },
+  async ({ address, content, threadId, messageId, subject }) => {
+    let draftResponse = "";
+    try {
+      draftResponse = await authorize().then((client) =>
+        draftEmail({ client, address, content, threadId, messageId, subject })
+      );
+    } catch (err: unknown) {
+      console.error(err);
+      draftResponse = "Something went wrong. Cannot get gmail message threads.";
+      if (err instanceof Error) {
+        draftResponse = `${draftResponse} Error: ${err.message}`;
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: draftResponse,
         },
       ],
     };
