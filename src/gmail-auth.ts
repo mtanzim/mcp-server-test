@@ -6,12 +6,19 @@ const process = require("process");
 const { google } = require("googleapis");
 
 // If modifying these scopes, delete token.json.
-const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.compose"];
+const SCOPES = [
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.compose",
+];
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
-const TOKEN_PATH = path.join("/Users/tanzimmokammel/Documents/soft-eng/mcp-server-test/token.json");
-const CREDENTIALS_PATH = path.join("/Users/tanzimmokammel/Documents/soft-eng/mcp-server-test/credentials.json");
+const TOKEN_PATH = path.join(
+  "/Users/tanzimmokammel/Documents/soft-eng/mcp-server-test/token.json"
+);
+const CREDENTIALS_PATH = path.join(
+  "/Users/tanzimmokammel/Documents/soft-eng/mcp-server-test/credentials.json"
+);
 
 /**
  * Reads previously authorized credentials from the save file.
@@ -35,7 +42,9 @@ async function loadSavedCredentialsIfExist() {
  * @param {OAuth2Client} client
  * @return {Promise<void>}
  */
-async function saveCredentials(client: { credentials: { refresh_token: any; }; }) {
+async function saveCredentials(client: {
+  credentials: { refresh_token: any };
+}) {
   const content = await fs.readFile(CREDENTIALS_PATH);
   const keys = JSON.parse(content);
   const key = keys.installed || keys.web;
@@ -64,6 +73,7 @@ export async function authorize() {
   if (client.credentials) {
     await saveCredentials(client);
   }
+  console.log("Authed")
   return client;
 }
 
@@ -79,15 +89,11 @@ async function listLabels(auth: any) {
   });
   const labels = res.data.labels;
   if (!labels || labels.length === 0) {
-    // console.log("No labels found.");
-    return;
+    return [];
   }
-  // console.log("Labels:");
-  labels.forEach((label: { name: any; }) => {
-    // console.log(`- ${label.name}`);
-  });
+  return labels;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  authorize().then(listLabels).catch(console.error);
+  authorize().then(listLabels).then(console.log).catch(console.error);
 }

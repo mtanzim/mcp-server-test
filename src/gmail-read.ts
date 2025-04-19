@@ -21,9 +21,10 @@ async function getThreadSnippets(
 ): Promise<Map<string, string[]>> {
   const res = await gmail.users.messages.list({
     userId: "me",
-    q: "newer_than:3d",
+    q: "newer_than:7d",
+    labelIds: ["INBOX"],
     pageToken: pageToken,
-    maxResults: 10,
+    maxResults: 25,
   });
   const [snippets, fullMessageRes] = await processMessageThreads(
     gmail,
