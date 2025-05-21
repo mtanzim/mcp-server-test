@@ -6,9 +6,10 @@ import { getTomorrowWeatherForecast } from "./tomorrow.js";
 import { authorize } from "./gmail-auth.js";
 import { listThreadSnippets } from "./gmail-read.js";
 import { draftEmail } from "./gmail-compose.js";
-dotenv.config();
-import express from "express";
+import express, { Request, Response } from "express";
+import morgan from "morgan";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+dotenv.config();
 // Create server instance
 const server = new McpServer({
   name: "Tanzim's tools",
@@ -120,34 +121,39 @@ server.tool(
   }
 );
 
-// async function main() {
-//   const transport = new StdioServerTransport();
-//   await server.connect(transport);
-//   console.log("Tanzim's MCP Server running on stdio");
-// }
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.log("Tanzim's MCP Server running on stdio");
+}
 
-// main().catch((error) => {
-//   console.error("Fatal error in main():", error);
-//   process.exit(1);
-// });
+function startSSEServer() {
+  const app = express();
+  app.use(morgan("tiny"));
+  let transport: SSEServerTransport | null = null;
 
-const app = express();
-const morgan = require('morgan')
-app.use(morgan('tiny'))
-let transport: SSEServerTransport | null = null;
+  app.get("/sse", (_req: Request, res: Response) => {
+    transport = new SSEServerTransport("/messages", res);
+    server.connect(transport);
+  });
 
-app.get("/sse", (req, res) => {
-  transport = new SSEServerTransport("/messages", res);
-  server.connect(transport);
-});
+  app.post("/messages", (req: Request, res: Response) => {
+    if (transport) {
+      transport.handlePostMessage(req, res);
+    }
+  });
 
-app.post("/messages", (req, res) => {
-  if (transport) {
-    transport.handlePostMessage(req, res);
-  }
-});
+  const port = 5222;
+  app.listen(port, () => {
+    console.log(`MCP SSE app listening on port ${port}`);
+  });
+}
 
-const port = 5222;
-app.listen(port, () => {
-  console.log(`MCP SSE app listening on port ${port}`);
-});
+if (process.env?.MCP_SSE === "1") {
+  startSSEServer();
+} else {
+  main().catch((error) => {
+    console.error("Fatal error in main():", error);
+    process.exit(1);
+  });
+}
