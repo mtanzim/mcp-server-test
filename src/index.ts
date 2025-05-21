@@ -7,16 +7,14 @@ import { authorize } from "./gmail-auth.js";
 import { listThreadSnippets } from "./gmail-read.js";
 import { draftEmail } from "./gmail-compose.js";
 dotenv.config();
-
+import express from "express";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 // Create server instance
 const server = new McpServer({
   name: "Tanzim's tools",
   version: "1.0.0",
 });
 
-server.resource({
-  name: "gmail authentication token",
-});
 server.tool(
   "get-forecast",
   "Get weather forecast for a location",
@@ -122,13 +120,34 @@ server.tool(
   }
 );
 
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.log("Tanzim's MCP Server running on stdio");
-}
+// async function main() {
+//   const transport = new StdioServerTransport();
+//   await server.connect(transport);
+//   console.log("Tanzim's MCP Server running on stdio");
+// }
 
-main().catch((error) => {
-  console.error("Fatal error in main():", error);
-  process.exit(1);
+// main().catch((error) => {
+//   console.error("Fatal error in main():", error);
+//   process.exit(1);
+// });
+
+const app = express();
+const morgan = require('morgan')
+app.use(morgan('tiny'))
+let transport: SSEServerTransport | null = null;
+
+app.get("/sse", (req, res) => {
+  transport = new SSEServerTransport("/messages", res);
+  server.connect(transport);
+});
+
+app.post("/messages", (req, res) => {
+  if (transport) {
+    transport.handlePostMessage(req, res);
+  }
+});
+
+const port = 5222;
+app.listen(port, () => {
+  console.log(`MCP SSE app listening on port ${port}`);
 });

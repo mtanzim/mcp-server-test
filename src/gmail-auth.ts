@@ -14,10 +14,10 @@ const SCOPES = [
 // created automatically when the authorization flow completes for the first
 // time.
 const TOKEN_PATH = path.join(
-  "/Users/tanzimmokammel/Documents/soft-eng/mcp-server-test/token.json"
+  "/Users/tanzim/Documents/soft-eng/personal/mcp-server-test/tokens.json"
 );
 const CREDENTIALS_PATH = path.join(
-  "/Users/tanzimmokammel/Documents/soft-eng/mcp-server-test/credentials.json"
+  "/Users/tanzim/Documents/soft-eng/personal/mcp-server-test/credentials.json"
 );
 
 /**

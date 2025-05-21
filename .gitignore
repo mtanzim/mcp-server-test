@@ -136,4 +136,5 @@ dist
 .pnp.*
 build
 token.json
+tokens.json
 credentials.json
