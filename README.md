@@ -38,3 +38,18 @@ Set `MCP_SSE=1` to run in SSE (Server-Sent Events) mode.
 
 - `bun run typecheck`: Run TypeScript type checking
 - `bun run build`: Build the project
+
+## Setup with Claude desktop
+
+See following example `$HOME/Application Support/Claude/claude_desktop_config.json`. Replace `$HOME` and `$WORKSPACE_ROOT` as required.
+
+```json
+{
+  "mcpServers": {
+    "tanzim-cohere-tools": {
+      "command": "$HOME/.bun/bin/bun",
+      "args": ["$WORKSPACE_ROOT/src/index.ts"]
+    }
+  }
+}
+```
