@@ -32,7 +32,7 @@ bun run auth-gmail
 bun run dev
 ```
 
-- Set `MCP_SSE=1` to run in SSE (Server-Sent Events) mode.
+Set `MCP_SSE=1` to run in SSE (Server-Sent Events) mode.
 
 ## Development
 
