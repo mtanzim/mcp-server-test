@@ -13,12 +13,8 @@ const SCOPES = [
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
-const TOKEN_PATH = path.join(
-  "/Users/tanzim/Documents/soft-eng/personal/mcp-server-test/tokens.json"
-);
-const CREDENTIALS_PATH = path.join(
-  "/Users/tanzim/Documents/soft-eng/personal/mcp-server-test/credentials.json"
-);
+const TOKEN_PATH = process.env?.["TOKEN_PATH"]
+const CREDENTIALS_PATH = process.env?.["CREDENTIALS_PATH"]
 
 /**
  * Reads previously authorized credentials from the save file.
