@@ -8,6 +8,7 @@
 	},
 	"scripts": {
 		"dev": "bun src/index.ts",
+		"inspector": "bunx @modelcontextprotocol/inspector",
 		"auth-gmail": "bun src/gmail-auth.ts",
 		"typecheck": "tsc",
 		"build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",

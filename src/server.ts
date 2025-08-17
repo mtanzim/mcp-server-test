@@ -49,16 +49,17 @@ server.tool(
   }
 );
 
+const NUM_DAYS_OF_SNIPPETS = 14;
 server.tool(
   "gmail-snippets",
-  "Get my gmail snippets from threads from the last 3 days",
-  {
-    name: z.string().optional(),
-  },
-  async ({ name }) => {
+  `Get my gmail snippets from threads from the last ${NUM_DAYS_OF_SNIPPETS} days`,
+  {},
+  async ({}) => {
     let snippetText = "";
     try {
-      snippetText = await authorize().then(listThreadSnippets);
+      snippetText = await authorize().then((authedClient) =>
+        listThreadSnippets(authedClient, NUM_DAYS_OF_SNIPPETS)
+      );
     } catch (err: unknown) {
       console.error(err);
       snippetText = "Something went wrong. Cannot get gmail message threads.";
