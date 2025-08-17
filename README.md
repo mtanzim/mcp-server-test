@@ -23,21 +23,23 @@ bun install
 Check [.env.template](.env.template) for token path configurations, and set appropriately. Then execute:
 
 ```bash
-bun run auth-gmail
+bun auth-gmail
 ```
 
 3. Run the server:
 
 ```bash
-bun run dev
+bun dev
 ```
 
-Set `MCP_SSE=1` to run in SSE (Server-Sent Events) mode.
+Set `STDIO=1` to run in stdio mode (ie: for Claude Desktop).
 
 ## Development
 
-- `bun run typecheck`: Run TypeScript type checking
+- `bun typecheck`: Run TypeScript type checking
 - `bun run build`: Build the project
+- `bun lint`: lint
+- `bun format`: format
 
 ## Setup with Claude desktop
 
@@ -46,10 +48,16 @@ See following example `$HOME/Application Support/Claude/claude_desktop_config.js
 ```json
 {
   "mcpServers": {
-    "tanzim-cohere-tools": {
+    "tanzim-tools": {
       "command": "$HOME/.bun/bin/bun",
-      "args": ["$WORKSPACE_ROOT/src/index.ts"]
+      "args": ["$PROJECT_PATH/src/index.ts"],
+      "env": {
+        "STDIO": "1",
+        "TOKEN_PATH": "$PROJECT_PATH/tokens.json",
+        "CREDENTIALS_PATH": "$PROJECT_PATH/credentials.json"
+      }
     }
-  }
+  },
+  "globalShortcut": ""
 }
 ```
