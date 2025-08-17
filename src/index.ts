@@ -1,159 +1,107 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import * as dotenv from "dotenv";
-import { z } from "zod";
-import { getTomorrowWeatherForecast } from "./tomorrow.js";
-import { authorize } from "./gmail-auth.js";
-import { listThreadSnippets } from "./gmail-read.js";
-import { draftEmail } from "./gmail-compose.js";
-import express, { Request, Response } from "express";
+import express from "express";
+
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import morgan from "morgan";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { randomUUID } from "node:crypto";
+import { server } from "./server.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
 dotenv.config();
-// Create server instance
-const server = new McpServer({
-  name: "Tanzim's tools",
-  version: "1.0.0",
-});
 
-server.tool(
-  "get-forecast",
-  "Get weather forecast for a location",
-  {
-    latitude: z.number().min(-90).max(90).describe("Latitude of the location"),
-    longitude: z
-      .number()
-      .min(-180)
-      .max(180)
-      .describe("Longitude of the location"),
-  },
-  async ({ latitude, longitude }) => {
-    let forecastText = "";
-    try {
-      forecastText = await getTomorrowWeatherForecast({
-        lat: latitude.toFixed(4),
-        long: longitude.toFixed(4),
-      });
-    } catch (err: unknown) {
-      console.error(err);
-      console.log({ latitude, longitude });
-      forecastText = "Something went wrong. Cannot get weather forecast.";
-      if (err instanceof Error) {
-        forecastText = `${forecastText} Error: ${err.message}`;
-      }
-    }
+const startHTTP = () => {
+	const app = express();
+	app.use(express.json());
+	app.use(morgan("tiny"));
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: forecastText,
-        },
-      ],
-    };
-  }
-);
+	// Map to store transports by session ID
+	const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
-server.tool(
-  "gmail-snippets",
-  "Get my gmail snippets from threads from the last 3 days",
-  {
-    name: z.string().optional(),
-  },
-  async ({ name }) => {
-    let snippetText = "";
-    try {
-      snippetText = await authorize().then(listThreadSnippets);
-    } catch (err: unknown) {
-      console.error(err);
-      snippetText = "Something went wrong. Cannot get gmail message threads.";
-      if (err instanceof Error) {
-        snippetText = `${snippetText} Error: ${err.message}`;
-      }
-    }
+	// Handle POST requests for client-to-server communication
+	app.post("/mcp", async (req, res) => {
+		// Check for existing session ID
+		const sessionId = req.headers["mcp-session-id"] as string | undefined;
+		let transport: StreamableHTTPServerTransport;
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: snippetText,
-        },
-      ],
-    };
-  }
-);
+		if (sessionId && transports[sessionId]) {
+			// Reuse existing transport
+			transport = transports[sessionId];
+		} else if (!sessionId && isInitializeRequest(req.body)) {
+			// New initialization request
+			transport = new StreamableHTTPServerTransport({
+				sessionIdGenerator: () => randomUUID(),
+				onsessioninitialized: (sessionId: string) => {
+					// Store the transport by session ID
+					transports[sessionId] = transport;
+				},
+				// DNS rebinding protection is disabled by default for backwards compatibility. If you are running this server
+				// locally, make sure to set:
+				// enableDnsRebindingProtection: true,
+				// allowedHosts: ['127.0.0.1'],
+			});
 
-server.tool(
-  "gmail-draft-response",
-  "Creates draft responses to specified messages in Gmail.",
-  {
-    address: z
-      .string()
-      .email()
-      .describe("the address of the sended of the original email"),
-    content: z.string().describe("the content of the response"),
-    threadId: z.string().describe("the threadId of the original message"),
-    messageId: z.string().describe("the messageId of the original message"),
-    subject: z.string().describe("the subject of the original message"),
-  },
-  async ({ address, content, threadId, messageId, subject }) => {
-    let draftResponse = "";
-    try {
-      draftResponse = await authorize().then((auth) =>
-        draftEmail(auth, { address, content, threadId, messageId, subject })
-      );
-    } catch (err: unknown) {
-      console.error(err);
-      draftResponse = "Something went wrong. Cannot get gmail message threads.";
-      if (err instanceof Error) {
-        draftResponse = `${draftResponse} Error: ${err.message}`;
-      }
-    }
+			// Clean up transport when closed
+			transport.onclose = () => {
+				if (transport.sessionId) {
+					delete transports[transport.sessionId];
+				}
+			};
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: draftResponse,
-        },
-      ],
-    };
-  }
-);
+			// ... set up server resources, tools, and prompts ...
 
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.log("Tanzim's MCP Server running on stdio");
+			// Connect to the MCP server
+			await server.connect(transport);
+		} else {
+			// Invalid request
+			res.status(400).json({
+				jsonrpc: "2.0",
+				error: {
+					code: -32000,
+					message: "Bad Request: No valid session ID provided",
+				},
+				id: null,
+			});
+			return;
+		}
+
+		// Handle the request
+		await transport.handleRequest(req, res, req.body);
+	});
+
+	// Reusable handler for GET and DELETE requests
+	const handleSessionRequest = async (
+		req: express.Request,
+		res: express.Response,
+	) => {
+		const sessionId = req.headers["mcp-session-id"] as string | undefined;
+		if (!sessionId || !transports[sessionId]) {
+			res.status(400).send("Invalid or missing session ID");
+			return;
+		}
+
+		const transport = transports[sessionId];
+		await transport.handleRequest(req, res);
+	};
+
+	// Handle GET requests for server-to-client notifications via SSE
+	app.get("/mcp", handleSessionRequest);
+
+	// Handle DELETE requests for session termination
+	app.delete("/mcp", handleSessionRequest);
+	const port = process.env?.PORT || 3000;
+	console.log(`starting server on :${port}`);
+	app.listen(port);
+};
+
+async function startStdIO() {
+	const transport = new StdioServerTransport();
+	await server.connect(transport);
+	console.log("Tanzim's MCP Server running on stdio");
 }
 
-function startSSEServer() {
-  const app = express();
-  app.use(morgan("tiny"));
-  let transport: SSEServerTransport | null = null;
-
-  app.get("/sse", (_req: Request, res: Response) => {
-    transport = new SSEServerTransport("/messages", res);
-    server.connect(transport);
-  });
-
-  app.post("/messages", (req: Request, res: Response) => {
-    if (transport) {
-      transport.handlePostMessage(req, res);
-    }
-  });
-
-  const port = 5222;
-  app.listen(port, () => {
-    console.log(`MCP SSE app listening on port ${port}`);
-  });
-}
-
-if (process.env?.MCP_SSE === "1") {
-  startSSEServer();
+if (process.env?.["STDIO"] === "1") {
+	startStdIO();
 } else {
-  main().catch((error) => {
-    console.error("Fatal error in main():", error);
-    process.exit(1);
-  });
+	startHTTP();
 }
