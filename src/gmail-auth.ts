@@ -1,8 +1,8 @@
 import { authenticate } from "@google-cloud/local-auth";
 
-const fs = require("fs").promises;
-const path = require("path");
-const process = require("process");
+const fs = require("node:fs").promises;
+const _path = require("node:path");
+const process = require("node:process");
 const { google } = require("googleapis");
 
 // If modifying these scopes, delete token.json.
@@ -13,8 +13,8 @@ const SCOPES = [
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
-const TOKEN_PATH = process.env?.["TOKEN_PATH"];
-const CREDENTIALS_PATH = process.env?.["CREDENTIALS_PATH"];
+const TOKEN_PATH = process.env?.TOKEN_PATH;
+const CREDENTIALS_PATH = process.env?.CREDENTIALS_PATH;
 
 /**
  * Reads previously authorized credentials from the save file.
@@ -26,7 +26,7 @@ async function loadSavedCredentialsIfExist() {
 		const content = await fs.readFile(TOKEN_PATH);
 		const credentials = JSON.parse(content);
 		return google.auth.fromJSON(credentials);
-	} catch (err) {
+	} catch (_err) {
 		// console.log(err);
 		return null;
 	}

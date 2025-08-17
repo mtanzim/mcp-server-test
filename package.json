@@ -13,6 +13,7 @@
 		"typecheck": "tsc",
 		"build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
 		"lint": "bunx biome lint --write",
+		"lint-unsafe": "bunx biome lint --write --unsafe",
 		"format": "bunx biome format --write"
 	},
 	"files": [

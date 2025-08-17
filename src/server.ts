@@ -3,7 +3,6 @@ import { z } from "zod";
 import { authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
 import { listThreadSnippets } from "./gmail-read.js";
-import { getTomorrowWeatherForecast } from "./tomorrow.js";
 
 // Create server instance
 export const server = new McpServer({
@@ -11,50 +10,12 @@ export const server = new McpServer({
   version: "1.0.0",
 });
 
-server.tool(
-  "get-forecast",
-  "Get weather forecast for a location",
-  {
-    latitude: z.number().min(-90).max(90).describe("Latitude of the location"),
-    longitude: z
-      .number()
-      .min(-180)
-      .max(180)
-      .describe("Longitude of the location"),
-  },
-  async ({ latitude, longitude }) => {
-    let forecastText = "";
-    try {
-      forecastText = await getTomorrowWeatherForecast({
-        lat: latitude.toFixed(4),
-        long: longitude.toFixed(4),
-      });
-    } catch (err: unknown) {
-      console.error(err);
-      console.log({ latitude, longitude });
-      forecastText = "Something went wrong. Cannot get weather forecast.";
-      if (err instanceof Error) {
-        forecastText = `${forecastText} Error: ${err.message}`;
-      }
-    }
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: forecastText,
-        },
-      ],
-    };
-  }
-);
-
 const NUM_DAYS_OF_SNIPPETS = 14;
 server.tool(
   "gmail-snippets",
   `Get my gmail snippets from threads from the last ${NUM_DAYS_OF_SNIPPETS} days`,
   {},
-  async ({}) => {
+  async () => {
     let snippetText = "";
     try {
       snippetText = await authorize().then((authedClient) =>
