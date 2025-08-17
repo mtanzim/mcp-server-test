@@ -24,7 +24,7 @@
 	"dependencies": {
 		"@google-cloud/local-auth": "^3.0.1",
 		"@googleapis/gmail": "^12.0.0",
-		"@modelcontextprotocol/sdk": "^1.6.1",
+		"@modelcontextprotocol/sdk": "^1.17.3",
 		"express": "^5.1.0",
 		"googleapis": "105",
 		"morgan": "^1.10.0",
