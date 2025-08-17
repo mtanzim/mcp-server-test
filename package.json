@@ -8,6 +8,7 @@
 	},
 	"scripts": {
 		"dev": "bun src/index.ts",
+		"dev-stdio": "STDIO=1 bun src/index.ts",
 		"inspector": "bunx @modelcontextprotocol/inspector",
 		"auth-gmail": "bun src/gmail-auth.ts",
 		"typecheck": "tsc",

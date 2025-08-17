@@ -6,86 +6,102 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import morgan from "morgan";
 import { randomUUID } from "node:crypto";
 import { server } from "./server.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 dotenv.config();
-const app = express();
-app.use(express.json());
-app.use(morgan("tiny"));
 
-// Map to store transports by session ID
-const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
+const startHTTP = () => {
+	const app = express();
+	app.use(express.json());
+	app.use(morgan("tiny"));
 
-// Handle POST requests for client-to-server communication
-app.post("/mcp", async (req, res) => {
-  // Check for existing session ID
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  let transport: StreamableHTTPServerTransport;
+	// Map to store transports by session ID
+	const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
-  if (sessionId && transports[sessionId]) {
-    // Reuse existing transport
-    transport = transports[sessionId];
-  } else if (!sessionId && isInitializeRequest(req.body)) {
-    // New initialization request
-    transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: (sessionId: string) => {
-        // Store the transport by session ID
-        transports[sessionId] = transport;
-      },
-      // DNS rebinding protection is disabled by default for backwards compatibility. If you are running this server
-      // locally, make sure to set:
-      // enableDnsRebindingProtection: true,
-      // allowedHosts: ['127.0.0.1'],
-    });
+	// Handle POST requests for client-to-server communication
+	app.post("/mcp", async (req, res) => {
+		// Check for existing session ID
+		const sessionId = req.headers["mcp-session-id"] as string | undefined;
+		let transport: StreamableHTTPServerTransport;
 
-    // Clean up transport when closed
-    transport.onclose = () => {
-      if (transport.sessionId) {
-        delete transports[transport.sessionId];
-      }
-    };
+		if (sessionId && transports[sessionId]) {
+			// Reuse existing transport
+			transport = transports[sessionId];
+		} else if (!sessionId && isInitializeRequest(req.body)) {
+			// New initialization request
+			transport = new StreamableHTTPServerTransport({
+				sessionIdGenerator: () => randomUUID(),
+				onsessioninitialized: (sessionId: string) => {
+					// Store the transport by session ID
+					transports[sessionId] = transport;
+				},
+				// DNS rebinding protection is disabled by default for backwards compatibility. If you are running this server
+				// locally, make sure to set:
+				// enableDnsRebindingProtection: true,
+				// allowedHosts: ['127.0.0.1'],
+			});
 
-    // ... set up server resources, tools, and prompts ...
+			// Clean up transport when closed
+			transport.onclose = () => {
+				if (transport.sessionId) {
+					delete transports[transport.sessionId];
+				}
+			};
 
-    // Connect to the MCP server
-    await server.connect(transport);
-  } else {
-    // Invalid request
-    res.status(400).json({
-      jsonrpc: "2.0",
-      error: {
-        code: -32000,
-        message: "Bad Request: No valid session ID provided",
-      },
-      id: null,
-    });
-    return;
-  }
+			// ... set up server resources, tools, and prompts ...
 
-  // Handle the request
-  await transport.handleRequest(req, res, req.body);
-});
+			// Connect to the MCP server
+			await server.connect(transport);
+		} else {
+			// Invalid request
+			res.status(400).json({
+				jsonrpc: "2.0",
+				error: {
+					code: -32000,
+					message: "Bad Request: No valid session ID provided",
+				},
+				id: null,
+			});
+			return;
+		}
 
-// Reusable handler for GET and DELETE requests
-const handleSessionRequest = async (
-  req: express.Request,
-  res: express.Response
-) => {
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  if (!sessionId || !transports[sessionId]) {
-    res.status(400).send("Invalid or missing session ID");
-    return;
-  }
+		// Handle the request
+		await transport.handleRequest(req, res, req.body);
+	});
 
-  const transport = transports[sessionId];
-  await transport.handleRequest(req, res);
+	// Reusable handler for GET and DELETE requests
+	const handleSessionRequest = async (
+		req: express.Request,
+		res: express.Response,
+	) => {
+		const sessionId = req.headers["mcp-session-id"] as string | undefined;
+		if (!sessionId || !transports[sessionId]) {
+			res.status(400).send("Invalid or missing session ID");
+			return;
+		}
+
+		const transport = transports[sessionId];
+		await transport.handleRequest(req, res);
+	};
+
+	// Handle GET requests for server-to-client notifications via SSE
+	app.get("/mcp", handleSessionRequest);
+
+	// Handle DELETE requests for session termination
+	app.delete("/mcp", handleSessionRequest);
+	const port = process.env?.PORT || 3000;
+	console.log(`starting server on :${port}`);
+	app.listen(port);
 };
 
-// Handle GET requests for server-to-client notifications via SSE
-app.get("/mcp", handleSessionRequest);
+async function startStdIO() {
+	const transport = new StdioServerTransport();
+	await server.connect(transport);
+	console.log("Tanzim's MCP Server running on stdio");
+}
 
-// Handle DELETE requests for session termination
-app.delete("/mcp", handleSessionRequest);
-const port = process.env?.PORT || 3000;
-console.log(`starting on ${port}`);
-app.listen(port);
+if (process.env?.["STDIO"] === "1") {
+	startStdIO();
+} else {
+	startHTTP();
+}
