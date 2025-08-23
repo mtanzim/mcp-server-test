@@ -100,7 +100,7 @@ async function startStdIO() {
 	console.log("Tanzim's MCP Server running on stdio");
 }
 
-if (process.env?.["STDIO"] === "1") {
+if (process.env?.STDIO === "1") {
 	startStdIO();
 } else {
 	startHTTP();

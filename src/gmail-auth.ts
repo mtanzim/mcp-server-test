@@ -39,6 +39,7 @@ async function loadSavedCredentialsIfExist() {
  * @return {Promise<void>}
  */
 async function saveCredentials(client: {
+	// biome-ignore lint/suspicious/noExplicitAny: will fix
 	credentials: { refresh_token: any };
 }) {
 	const content = await fs.readFile(CREDENTIALS_PATH);
@@ -78,6 +79,8 @@ export async function authorize() {
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
+
+// biome-ignore lint/suspicious/noExplicitAny: will fix
 async function listLabels(auth: any) {
 	const gmail = google.gmail({ version: "v1", auth });
 	const res = await gmail.users.labels.list({
