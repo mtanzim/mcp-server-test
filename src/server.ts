@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { number, z } from "zod";
 import { authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
-import { listThreadSnippets } from "./gmail-read.js";
+import { getThread, listThreadSnippets } from "./gmail-read.js";
 
 // Create server instance
 export const server = new McpServer({
@@ -26,6 +26,41 @@ server.tool(
     try {
       snippetText = await authorize().then((authedClient) =>
         listThreadSnippets(authedClient, days)
+      );
+    } catch (err: unknown) {
+      console.error(err);
+      snippetText = "Something went wrong. Cannot get gmail message threads.";
+      if (err instanceof Error) {
+        snippetText = `${snippetText} Error: ${err.message}`;
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: snippetText,
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "gmail-thread-full",
+  `Get the full messages for a  single thread`,
+  {
+    threadId: z
+      .string()
+      .describe(
+        "The id of the thread we are trying to read. It can be obtained from the gmail-thread-snippets tool."
+      ),
+  },
+  async ({ threadId }) => {
+    let snippetText = "";
+    try {
+      snippetText = await authorize().then((authedClient) =>
+        getThread(authedClient, threadId)
       );
     } catch (err: unknown) {
       console.error(err);
