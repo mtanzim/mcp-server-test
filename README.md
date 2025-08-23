@@ -4,11 +4,10 @@ A Model Context Protocol server that provides tools for weather forecasting and 
 
 ## Features
 
-- **Weather Forecast**: Get tomorrow's weather forecast for any location using latitude and longitude
 - **Gmail Integration**:
-  - Read recent email threads (last 7 days)
+  - Read recent email threads (last `x` days)
+  - Get the full text content of a thread
   - Create draft responses to emails
-  - Secure OAuth2 authentication
 
 ## Setup
 
