@@ -24,15 +24,63 @@ export async function getThread(
 		id: threadId,
 		format: "full",
 	});
-	return res.data.messages?.map(processMessageBody).join("\n\n\n") || "";
+	return res.data.messages?.flatMap(processMessageBody).join("\n\n\n") || "";
 }
+
+const parseMessagePart = (m: gmail_v1.Schema$MessagePart): string => {
+	if (!m.body?.data) {
+		return "";
+	}
+
+	const bodyText = fromBase64(m.body?.data);
+	const meta = m.headers;
+	return `<part-body>
+\`\`\`plaintext
+${bodyText}
+\`\`\`
+</part-body>
+<part-metadata>
+\`\`\`json
+${JSON.stringify(meta)}
+\`\`\`
+</part-metadata>`;
+};
+
+const parseMessageBody = (m: gmail_v1.Schema$Message): string => {
+	const bodyText = m.payload?.body?.data
+		? fromBase64(m.payload?.body?.data)
+		: "";
+	const meta = m.payload?.headers;
+	const importantHeaderNames = new Set([
+		"Delivered-To",
+		"Received",
+		"From",
+		"Message-ID",
+		"Date",
+		"Subject",
+		"To",
+	]);
+	const filteredMeta = meta?.filter((m) =>
+		importantHeaderNames.has(m?.name || ""),
+	);
+	return `<message-body>
+\`\`\`plaintext
+${bodyText}
+\`\`\`
+</message-body>
+<message-metadata>
+\`\`\`json
+${JSON.stringify(filteredMeta)}
+\`\`\`
+</message-metadata>`;
+};
 
 const processMessageParts = (ps: gmail_v1.Schema$MessagePart[]): string[] => {
 	return ps
 		.flatMap((p) => {
 			const cur = [];
 			if (p.body?.data && p.mimeType === "text/plain") {
-				cur.push(fromBase64(p.body?.data));
+				cur.push(parseMessagePart(p));
 			}
 			if (p.parts) {
 				cur.push(...processMessageParts(p.parts));
@@ -43,12 +91,11 @@ const processMessageParts = (ps: gmail_v1.Schema$MessagePart[]): string[] => {
 };
 
 const processMessageBody = (m: gmail_v1.Schema$Message): string[] => {
-	const newCur: string[] = [];
-	if (m.payload?.body?.data && m.payload?.mimeType === "text/plain") {
-		newCur.push(fromBase64(m.payload?.body?.data));
-	}
+	const newCur: string[] = [parseMessageBody(m)];
 	if (m.payload?.parts) {
+		newCur.push("<message-parts>");
 		newCur.push(...processMessageParts(m.payload.parts));
+		newCur.push("</message-parts>");
 	}
 	return newCur;
 };
