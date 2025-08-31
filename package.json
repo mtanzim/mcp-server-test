@@ -11,8 +11,7 @@
 		"dev-stdio": "STDIO=1 bun src/index.ts",
 		"inspector": "npx @modelcontextprotocol/inspector",
 		"auth-gmail": "bun src/gmail-auth.ts",
-		"typecheck": "tsc",
-		"build": "tsc && node-e \"require('fs').chmodSync('build/index.js', '755')\"",
+		"typecheck": "tsc --noEmit",
 		"lint": "biome lint --write",
 		"lint-unsafe": "biome lint --write --unsafe",
 		"format": "biome format --write"
