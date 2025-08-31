@@ -214,7 +214,9 @@ async function getMessage(gmail: gmail_v1.Gmail, m: gmail_v1.Schema$Message) {
 if (import.meta.url === `file://${process.argv[1]}`) {
 	authorize()
 		// 3 days of snippets
-		.then((client) => listThreadSnippets(client, 3))
+		.then((client) =>
+			client ? listThreadSnippets(client, 3) : "Not authenticated",
+		)
 		.catch(console.error)
 		.then(console.log);
 }

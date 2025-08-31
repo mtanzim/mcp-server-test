@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { authorize } from "./gmail-auth.js";
+import { authenticateTool, authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
 import { getThread, listThreadSnippets } from "./gmail-read.js";
 
@@ -10,9 +10,42 @@ export const server = new McpServer({
 	version: "1.0.0",
 });
 
+const authHint =
+	"If there are authentication errors, try using the gmail-auth tool.";
+const authErrorHint = "Please try using the gmail-auth tool";
+server.tool(
+	"gmail-auth",
+	"Manually authenticate gmail when the tokens are expired or missing or there is an authentication error.",
+	{},
+	async () => {
+		const unauthMessage = "Cannot authenticate gmail now, please try again.";
+		let snippetText = "";
+		try {
+			const isAuthed = await authenticateTool();
+			if (isAuthed) {
+				snippetText = "Successfully authenticated";
+			}
+		} catch (err: unknown) {
+			console.error(err);
+			if (err instanceof Error) {
+				snippetText = `${unauthMessage} Error: ${err.message}`;
+			}
+		}
+
+		return {
+			content: [
+				{
+					type: "text",
+					text: snippetText,
+				},
+			],
+		};
+	},
+);
+
 server.tool(
 	"gmail-thread-snippets",
-	`Get my gmail snippets from threads from the last  days`,
+	`Get my gmail snippets from threads from the last days. ${authHint}`,
 	{
 		days: z
 			.number()
@@ -24,9 +57,12 @@ server.tool(
 	async ({ days }) => {
 		let snippetText = "";
 		try {
-			snippetText = await authorize().then((authedClient) =>
-				listThreadSnippets(authedClient, days),
-			);
+			snippetText = await authorize().then((authedClient) => {
+				if (!authedClient) {
+					return authErrorHint;
+				}
+				return listThreadSnippets(authedClient, days);
+			});
 		} catch (err: unknown) {
 			console.error(err);
 			snippetText = "Something went wrong. Cannot get gmail message threads.";
@@ -60,7 +96,7 @@ server.tool(
 		let snippetText = "";
 		try {
 			snippetText = await authorize().then((authedClient) =>
-				getThread(authedClient, threadId),
+				authedClient ? getThread(authedClient, threadId) : authErrorHint,
 			);
 		} catch (err: unknown) {
 			console.error(err);
@@ -97,8 +133,16 @@ server.tool(
 	async ({ address, content, threadId, messageId, subject }) => {
 		let draftResponse = "";
 		try {
-			draftResponse = await authorize().then((auth) =>
-				draftEmail(auth, { address, content, threadId, messageId, subject }),
+			draftResponse = await authorize().then((authedClient) =>
+				authedClient
+					? draftEmail(authedClient, {
+							address,
+							content,
+							threadId,
+							messageId,
+							subject,
+						})
+					: authErrorHint,
 			);
 		} catch (err: unknown) {
 			console.error(err);

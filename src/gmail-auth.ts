@@ -1,7 +1,7 @@
 import { authenticate } from "@google-cloud/local-auth";
+import type { Auth } from "googleapis";
 
 const fs = require("node:fs").promises;
-const _path = require("node:path");
 const process = require("node:process");
 const { google } = require("googleapis");
 
@@ -58,7 +58,7 @@ async function saveCredentials(client: {
  * Load or request or authorization to call APIs.
  *
  */
-export async function authorize() {
+export async function authorize(): Promise<Auth.OAuth2Client | undefined> {
 	let client = await loadSavedCredentialsIfExist();
 	if (client) {
 		return client;
@@ -69,9 +69,18 @@ export async function authorize() {
 	});
 	if (client.credentials) {
 		await saveCredentials(client);
+		console.log("Authed");
+		return client;
 	}
-	console.log("Authed");
-	return client;
+	return;
+}
+
+export async function authenticateTool(): Promise<boolean> {
+	const client = await authorize();
+	if (client) {
+		return true;
+	}
+	return false;
 }
 
 /**
