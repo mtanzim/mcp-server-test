@@ -1,5 +1,5 @@
-import { authorize } from "./gmail-auth.js";
 import { type Auth, type gmail_v1, google } from "googleapis";
+import { authorize } from "./gmail-auth.js";
 
 export async function listThreadSnippets(
 	auth: Auth.OAuth2Client,
@@ -27,19 +27,6 @@ export async function getThread(
 	return res.data.messages?.flatMap(processMessageBody).join("\n\n\n") || "";
 }
 
-export async function getThreadHtml(
-	auth: Auth.OAuth2Client,
-	threadId: string,
-): Promise<string> {
-	const gmail = google.gmail({ version: "v1", auth });
-	const res = await gmail.users.threads.get({
-		userId: "me",
-		id: threadId,
-		format: "full",
-	});
-	return res.data.messages?.flatMap(processMessageBodyHtml).join("\n") || "";
-}
-
 const parseMessagePart = (m: gmail_v1.Schema$MessagePart): string => {
 	if (!m.body?.data) {
 		return "";
@@ -57,15 +44,6 @@ ${bodyText}
 ${JSON.stringify(meta)}
 \`\`\`
 </part-metadata>`;
-};
-
-const parseMessagePartHtml = (m: gmail_v1.Schema$MessagePart): string => {
-	if (!m.body?.data) {
-		return "";
-	}
-	const bodyText = fromBase64(m.body?.data);
-	const meta = m.headers;
-	return `<p>${bodyText}</p><code>${JSON.stringify(meta)}</code>`;
 };
 
 const parseMessageBody = (m: gmail_v1.Schema$Message): string => {
@@ -97,26 +75,6 @@ ${JSON.stringify(filteredMeta)}
 </message-metadata>`;
 };
 
-const parseMessageBodyHtml = (m: gmail_v1.Schema$Message): string => {
-	const bodyText = m.payload?.body?.data
-		? fromBase64(m.payload?.body?.data)
-		: "";
-	const meta = m.payload?.headers;
-	const importantHeaderNames = new Set([
-		"Delivered-To",
-		"Received",
-		"From",
-		"Message-ID",
-		"Date",
-		"Subject",
-		"To",
-	]);
-	const filteredMeta = meta?.filter((m) =>
-		importantHeaderNames.has(m?.name || ""),
-	);
-	return `<p>${bodyText}</p><code>${JSON.stringify(filteredMeta)}</code>`;
-};
-
 const processMessageParts = (ps: gmail_v1.Schema$MessagePart[]): string[] => {
 	return ps
 		.flatMap((p) => {
@@ -132,39 +90,12 @@ const processMessageParts = (ps: gmail_v1.Schema$MessagePart[]): string[] => {
 		.filter(Boolean);
 };
 
-const processMessagePartsHtml = (
-	ps: gmail_v1.Schema$MessagePart[],
-): string[] => {
-	return ps
-		.flatMap((p) => {
-			const cur = [];
-			if (p.body?.data && p.mimeType === "text/plain") {
-				cur.push(parseMessagePartHtml(p));
-			}
-			if (p.parts) {
-				cur.push(...processMessagePartsHtml(p.parts));
-			}
-			return cur;
-		})
-		.filter(Boolean);
-};
-
 const processMessageBody = (m: gmail_v1.Schema$Message): string[] => {
 	const newCur: string[] = [parseMessageBody(m)];
 	if (m.payload?.parts) {
 		newCur.push("<message-parts>");
 		newCur.push(...processMessageParts(m.payload.parts));
 		newCur.push("</message-parts>");
-	}
-	return newCur;
-};
-
-const processMessageBodyHtml = (m: gmail_v1.Schema$Message): string[] => {
-	const newCur: string[] = [parseMessageBodyHtml(m)];
-	if (m.payload?.parts) {
-		newCur.push("<div>");
-		newCur.push(...processMessagePartsHtml(m.payload.parts));
-		newCur.push("</div");
 	}
 	return newCur;
 };

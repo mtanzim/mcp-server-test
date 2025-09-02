@@ -3,7 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { authenticateTool, authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
-import { getThread, getThreadHtml, listThreadSnippets } from "./gmail-read.js";
+import { getThread, listThreadSnippets } from "./gmail-read.js";
+import { getThreadHtml, listThreadSnippetsHtml } from "./gmail-read-html.js";
 // Create server instance
 export const server = new McpServer({
 	name: "Tanzim's tools",
@@ -228,6 +229,56 @@ server.tool(
 			console.error(err);
 			let snippetText =
 				"Something went wrong. Cannot get gmail message threads.";
+			if (err instanceof Error) {
+				snippetText = `${snippetText} Error: ${err.message}`;
+			}
+			return {
+				content: [
+					{
+						type: "text",
+						text: snippetText,
+					},
+				],
+			};
+		}
+	},
+);
+
+server.tool(
+	"gmail-thread-snippets-html",
+	`Get my gmail snippets from threads from the last days. ${authHint}`,
+	{
+		days: z
+			.number()
+			.min(1)
+			.max(60)
+			.default(3)
+			.describe("The number days of emails to read (1 to 60)"),
+	},
+	async ({ days }) => {
+		let snippetText = "";
+		try {
+			snippetText = await authorize().then((authedClient) => {
+				if (!authedClient) {
+					return authErrorHint;
+				}
+				return listThreadSnippetsHtml(authedClient, days);
+			});
+			const uiResource = createUIResource({
+				uri: "ui://remote-component/gmail-threads",
+				content: {
+					type: "rawHtml",
+					htmlString: snippetText,
+				},
+				encoding: "text",
+			});
+
+			return {
+				content: [uiResource],
+			};
+		} catch (err: unknown) {
+			console.error(err);
+			snippetText = "Something went wrong. Cannot get gmail message threads.";
 			if (err instanceof Error) {
 				snippetText = `${snippetText} Error: ${err.message}`;
 			}
