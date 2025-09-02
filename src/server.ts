@@ -1,9 +1,9 @@
-import { createUIResource } from '@mcp-ui/server';
+import { createUIResource } from "@mcp-ui/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { authenticateTool, authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
-import { getThread, listThreadSnippets } from "./gmail-read.js";
+import { getThread, getThreadHtml, listThreadSnippets } from "./gmail-read.js";
 // Create server instance
 export const server = new McpServer({
 	name: "Tanzim's tools",
@@ -163,6 +163,15 @@ server.tool(
 	},
 );
 
+const remoteDomScript = `
+  const button = document.createElement('ui-button');
+  button.setAttribute('label', 'Yo Click me for a top tool call!');
+  button.addEventListener('click', () => {
+    window.top.postMessage({ type: 'tool', payload: { toolName: 'uiInteraction', params: { action: 'button-click', from: 'remote-dom' } } }, '*');
+  });
+  root.appendChild(button);
+`;
+
 server.tool(
 	"greet",
 	{
@@ -173,13 +182,63 @@ server.tool(
 	async () => {
 		// Create the UI resource to be returned to the client (this is the only part specific to MCP-UI)
 		const uiResource = createUIResource({
-			uri: "ui://greeting",
-			content: { type: "externalUrl", iframeUrl: "https://example.com" },
+			uri: "ui://remote-component/action-button",
+			content: {
+				type: "remoteDom",
+				script: remoteDomScript,
+				framework: "react", // or 'webcomponents'
+			},
 			encoding: "text",
 		});
 
 		return {
 			content: [uiResource],
 		};
+	},
+);
+
+server.tool(
+	"gmail-thread-html",
+	`Get the full messages for a single thread in html format`,
+	{
+		threadId: z
+			.string()
+			.describe(
+				"The id of the thread we are trying to read. It can be obtained from the gmail-thread-snippets tool.",
+			),
+	},
+	async ({ threadId }) => {
+		try {
+			const snippetTextHtml = await authorize().then((authedClient) =>
+				authedClient ? getThreadHtml(authedClient, threadId) : authErrorHint,
+			);
+			const uiResource = createUIResource({
+				uri: "ui://remote-component/gmail-threads",
+				content: {
+					type: "rawHtml",
+					htmlString: snippetTextHtml,
+				},
+				encoding: "text",
+			});
+
+			return {
+				content: [uiResource],
+			};
+		} catch (err: unknown) {
+			console.error(err);
+			let snippetText =
+				"Something went wrong. Cannot get gmail message threads.";
+			if (err instanceof Error) {
+				snippetText = `${snippetText} Error: ${err.message}`;
+			}
+			return {
+				content: [
+					{
+						type: "text",
+						text: snippetText,
+					},
+				],
+			};
+		}
 	},
 );
