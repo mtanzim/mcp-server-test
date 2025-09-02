@@ -1,9 +1,10 @@
+import { createUIResource } from "@mcp-ui/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { authenticateTool, authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
 import { getThread, listThreadSnippets } from "./gmail-read.js";
-
+import { getThreadHtml, listThreadSnippetsHtml } from "./gmail-read-html.js";
 // Create server instance
 export const server = new McpServer({
 	name: "Tanzim's tools",
@@ -124,7 +125,7 @@ server.tool(
 		address: z
 			.string()
 			.email()
-			.describe("the address of the sended of the original email"),
+			.describe("the address of the sender of the original email"),
 		content: z.string().describe("the content of the response"),
 		threadId: z.string().describe("the threadId of the original message"),
 		messageId: z.string().describe("the messageId of the original message"),
@@ -160,5 +161,136 @@ server.tool(
 				},
 			],
 		};
+	},
+);
+
+const remoteDomScript = `
+  const button = document.createElement('ui-button');
+  button.setAttribute('label', 'Yo Click me for a top tool call!');
+  button.addEventListener('press', () => {
+		console.log('I was clicked');
+    window.top.postMessage({ type: 'tool', payload: { toolName: 'uiInteraction', params: { action: 'button-click', from: 'remote-dom' } } }, '*');
+  });
+  root.appendChild(button);
+`;
+
+server.tool(
+	"greet",
+	{
+		title: "Greet",
+		description: "A simple tool that returns a UI resource.",
+		inputSchema: {},
+	},
+	async () => {
+		// Create the UI resource to be returned to the client (this is the only part specific to MCP-UI)
+		const uiResource = createUIResource({
+			uri: "ui://remote-component/action-button",
+			content: {
+				type: "remoteDom",
+				script: remoteDomScript,
+				framework: "react", // or 'webcomponents'
+			},
+			encoding: "text",
+		});
+
+		return {
+			content: [uiResource],
+		};
+	},
+);
+
+server.tool(
+	"gmail-thread-html",
+	`Get the full messages for a single thread in html format`,
+	{
+		threadId: z
+			.string()
+			.describe(
+				"The id of the thread we are trying to read. It can be obtained from the gmail-thread-snippets tool.",
+			),
+	},
+	async ({ threadId }) => {
+		try {
+			const snippetTextHtml = await authorize().then((authedClient) =>
+				authedClient ? getThreadHtml(authedClient, threadId) : authErrorHint,
+			);
+			const uiResource = createUIResource({
+				uri: "ui://remote-component/gmail-threads",
+				content: {
+					type: "rawHtml",
+					htmlString: snippetTextHtml,
+				},
+				encoding: "text",
+			});
+
+			return {
+				content: [uiResource],
+			};
+		} catch (err: unknown) {
+			console.error(err);
+			let snippetText =
+				"Something went wrong. Cannot get gmail message threads.";
+			if (err instanceof Error) {
+				snippetText = `${snippetText} Error: ${err.message}`;
+			}
+			return {
+				content: [
+					{
+						type: "text",
+						text: snippetText,
+					},
+				],
+			};
+		}
+	},
+);
+
+server.tool(
+	"gmail-thread-snippets-html",
+	`Get my gmail snippets from threads from the last days. ${authHint}`,
+	{
+		days: z
+			.number()
+			.min(1)
+			.max(60)
+			.default(3)
+			.describe("The number days of emails to read (1 to 60)"),
+	},
+	async ({ days }) => {
+		let snippetText = "";
+		try {
+			snippetText = await authorize().then((authedClient) => {
+				if (!authedClient) {
+					return authErrorHint;
+				}
+				return listThreadSnippetsHtml(authedClient, days);
+			});
+			const uiResource = createUIResource({
+				uri: "ui://remote-component/gmail-threads",
+				content: {
+					type: "rawHtml",
+					htmlString: snippetText,
+				},
+				encoding: "text",
+			});
+
+			return {
+				content: [uiResource],
+			};
+		} catch (err: unknown) {
+			console.error(err);
+			snippetText = "Something went wrong. Cannot get gmail message threads.";
+			if (err instanceof Error) {
+				snippetText = `${snippetText} Error: ${err.message}`;
+			}
+			return {
+				content: [
+					{
+						type: "text",
+						text: snippetText,
+					},
+				],
+			};
+		}
 	},
 );

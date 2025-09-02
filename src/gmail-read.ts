@@ -1,5 +1,5 @@
-import { authorize } from "./gmail-auth.js";
 import { type Auth, type gmail_v1, google } from "googleapis";
+import { authorize } from "./gmail-auth.js";
 
 export async function listThreadSnippets(
 	auth: Auth.OAuth2Client,
