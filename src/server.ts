@@ -1,9 +1,9 @@
+import { createUIResource } from '@mcp-ui/server';
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { authenticateTool, authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
 import { getThread, listThreadSnippets } from "./gmail-read.js";
-
 // Create server instance
 export const server = new McpServer({
 	name: "Tanzim's tools",
@@ -159,6 +159,27 @@ server.tool(
 					text: draftResponse,
 				},
 			],
+		};
+	},
+);
+
+server.tool(
+	"greet",
+	{
+		title: "Greet",
+		description: "A simple tool that returns a UI resource.",
+		inputSchema: {},
+	},
+	async () => {
+		// Create the UI resource to be returned to the client (this is the only part specific to MCP-UI)
+		const uiResource = createUIResource({
+			uri: "ui://greeting",
+			content: { type: "externalUrl", iframeUrl: "https://example.com" },
+			encoding: "text",
+		});
+
+		return {
+			content: [uiResource],
 		};
 	},
 );

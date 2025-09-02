@@ -23,6 +23,7 @@
 	"dependencies": {
 		"@google-cloud/local-auth": "^3.0.1",
 		"@googleapis/gmail": "^12.0.0",
+		"@mcp-ui/server": "^5.10.0",
 		"@modelcontextprotocol/sdk": "^1.17.3",
 		"express": "^5.1.0",
 		"googleapis": "105",

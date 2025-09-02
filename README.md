@@ -60,3 +60,9 @@ See following example `$HOME/Application Support/Claude/claude_desktop_config.js
   "globalShortcut": ""
 }
 ```
+
+## Setup with MCP UI Inspector
+
+- Allows inspecting mcp ui
+- Locally setup: <https://github.com/idosal/ui-inspector>
+- Run the npm project above and use it to inspect mcp server
