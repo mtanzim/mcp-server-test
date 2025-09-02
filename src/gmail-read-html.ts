@@ -1,5 +1,6 @@
 import { type Auth, type gmail_v1, google } from "googleapis";
-
+import { content } from "googleapis/build/src/apis/content/index.js";
+import { z } from "zod";
 export async function listThreadSnippetsHtml(
 	auth: Auth.OAuth2Client,
 	days: number,
@@ -67,6 +68,16 @@ function parseSnippetHtml(
 		messageId: fullMessage?.at(-1)?.id,
 	};
 	const snippetVals = bodies.filter(Boolean).map((vv) => {
+		const getParams = (content: string) =>
+			JSON.stringify(
+				generateDraftEmailToolCall({
+					address: meta.senderAddress,
+					threadId: meta.threadId,
+					subject: meta.subject,
+					messageId: meta.messageId || "",
+					content,
+				}),
+			);
 		return `
 	<div>
 		<h1>${meta.subject}</h1>
@@ -82,20 +93,53 @@ function parseSnippetHtml(
 			<button type="button" onclick="(function(){
 				const response = document.getElementById('response-${meta.messageId}').value;
 				console.log('posting message for thread id: ${meta.threadId} and message id: ${meta.messageId}');
-				console.log(response);
-				window.top.postMessage({
-					type: 'email-response',
-					threadId: '${meta.threadId}',
-					senderAddress: '${meta.senderAddress}',
-					response: response
-				}, '*');
+				const params = {
+					type: 'tool',
+					payload: {
+						toolName: 'gmail-draft-response',
+						params: {
+							address: '${meta.senderAddress}',
+							threadId: '${meta.threadId}',
+							subject: '${meta.subject}',
+							messageId: '${meta.messageId}',
+							content: response
+						}
+					}
+				};
+				console.log(params);
+				window.top.postMessage(params, '*');
 			})()">Send</button>
+
 		</div>
 	</div>
 	`;
 	});
 	return snippetVals;
 }
+
+const gmailDraftToolName = "gmail-draft-response";
+const gmailDraftToolSchema = z.object({
+	address: z
+		.string()
+		.email()
+		.describe("the address of the sender of the original email"),
+	content: z.string().describe("the content of the response"),
+	threadId: z.string().describe("the threadId of the original message"),
+	messageId: z.string().describe("the messageId of the original message"),
+	subject: z.string().describe("the subject of the original message"),
+});
+
+const generateDraftEmailToolCall = (
+	params: z.infer<typeof gmailDraftToolSchema>,
+) => {
+	return {
+		type: "tool",
+		payload: {
+			toolName: gmailDraftToolName,
+			params,
+		},
+	};
+};
 
 export async function getThreadHtml(
 	auth: Auth.OAuth2Client,

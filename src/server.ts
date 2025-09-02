@@ -125,7 +125,7 @@ server.tool(
 		address: z
 			.string()
 			.email()
-			.describe("the address of the sended of the original email"),
+			.describe("the address of the sender of the original email"),
 		content: z.string().describe("the content of the response"),
 		threadId: z.string().describe("the threadId of the original message"),
 		messageId: z.string().describe("the messageId of the original message"),
@@ -167,7 +167,8 @@ server.tool(
 const remoteDomScript = `
   const button = document.createElement('ui-button');
   button.setAttribute('label', 'Yo Click me for a top tool call!');
-  button.addEventListener('click', () => {
+  button.addEventListener('press', () => {
+		console.log('I was clicked');
     window.top.postMessage({ type: 'tool', payload: { toolName: 'uiInteraction', params: { action: 'button-click', from: 'remote-dom' } } }, '*');
   });
   root.appendChild(button);
