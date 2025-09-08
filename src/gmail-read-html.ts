@@ -68,16 +68,6 @@ function parseSnippetHtml(
 		messageId: fullMessage?.at(-1)?.id,
 	};
 	const snippetVals = bodies.filter(Boolean).map((vv) => {
-		const getParams = (content: string) =>
-			JSON.stringify(
-				generateDraftEmailToolCall({
-					address: meta.senderAddress,
-					threadId: meta.threadId,
-					subject: meta.subject,
-					messageId: meta.messageId || "",
-					content,
-				}),
-			);
 		return `
 	<div>
 		<h1>${meta.subject}</h1>
