@@ -11,9 +11,9 @@
     id="email-{threadId}}"
     style="border: 1px solid #ccc; padding: 10px; margin-top: 10px"
   >
-    <label for="response-{messageId}}">Your Response:</label><br />
+    <label for="response-{{messageId}}">Your Response:</label><br />
     <textarea
-      id="response-{messageId}}"
+      id="response-{{messageId}}"
       rows="4"
       cols="50"
       style="width: 100%"
@@ -22,8 +22,8 @@
     <button
       type="button"
       onclick="(function(){
-				const response = document.getElementById('response-{messageId}}').value;
-				console.log('posting message for thread id: {threadId}} and message id: {messageId}}');
+				const response = document.getElementById('response-{{messageId}}').value;
+				console.log('posting message for thread id: {{threadId}} and message id: {{messageId}}');
 				const params = {
 					type: 'tool',
 					payload: {

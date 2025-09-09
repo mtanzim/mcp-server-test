@@ -36,6 +36,7 @@
 		"@modelcontextprotocol/inspector": "^0.16.5",
 		"@types/express": "^5.0.2",
 		"@types/morgan": "^1.9.9",
+		"@types/mustache": "^4.2.6",
 		"@types/node": "^22.13.9",
 		"dotenv": "^16.4.7",
 		"tsx": "^4.19.3",

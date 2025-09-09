@@ -1,8 +1,7 @@
 import { type Auth, type gmail_v1, google } from "googleapis";
-const Mustache = require("mustache");
+import Mustache from "mustache";
 import { readFile } from "./utils.js";
 
-import { z } from "zod";
 import path from "path";
 export async function listThreadSnippetsHtml(
 	auth: Auth.OAuth2Client,
@@ -75,7 +74,7 @@ async function parseSnippetHtml(
 			__dirname,
 			"mcp-ui-interfaces/gmail-threads.html",
 		);
-		const templatedHtml = await readFile(htmlFilePath);
+		const templatedHtml = (await readFile(htmlFilePath)) || "";
 		const view = {
 			...meta,
 			body: vv,
