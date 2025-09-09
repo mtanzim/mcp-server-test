@@ -15,7 +15,6 @@ export async function listThreadSnippetJS(
 		snippetsSerialized[k] = v;
 	}
 	return Object.values(snippetsSerialized).flat().join("\n\n\n");
-	// return Object.values(snippetsSerialized).flat()[0];
 }
 
 export async function listThreadSnippetsHtml(
