@@ -1,6 +1,9 @@
 import { type Auth, type gmail_v1, google } from "googleapis";
-import { content } from "googleapis/build/src/apis/content/index.js";
+const Mustache = require("mustache");
+import { readFile } from "./utils.js";
+
 import { z } from "zod";
+import path from "path";
 export async function listThreadSnippetsHtml(
 	auth: Auth.OAuth2Client,
 	days: number,
@@ -34,7 +37,7 @@ async function getThreadSnippetsHtml(
 	);
 	// modify the final snippets
 	for (const [k, v] of snippets) {
-		snippets.set(k, parseSnippetHtml(k, v, fullMessageRes));
+		snippets.set(k, await parseSnippetHtml(k, v, fullMessageRes));
 	}
 	const nextToken = res.data.nextPageToken;
 	if (nextToken && !disablePagination) {
@@ -47,7 +50,7 @@ async function getThreadSnippetsHtml(
 	return snippets;
 }
 
-function parseSnippetHtml(
+async function parseSnippetHtml(
 	threadId: string,
 	bodies: string[],
 	fullMessageRes: Map<string, gmail_v1.Schema$Message[]>,
@@ -67,69 +70,23 @@ function parseSnippetHtml(
 		threadId,
 		messageId: fullMessage?.at(-1)?.id,
 	};
-	const snippetVals = bodies.filter(Boolean).map((vv) => {
-		return `
-	<div>
-		<h1>${meta.subject}</h1>
-		<h2>${meta.senderAddress}</h2>
-		<p>${vv}</p>
-		<details>
-			<summary>Metadata</summary>
-			<code>${JSON.stringify(meta)}</code>
-		</details>
-		<div id="email-${meta.threadId}" style="border:1px solid #ccc; padding:10px; margin-top:10px;">
-			<label for="response-${meta.messageId}">Your Response:</label><br>
-			<textarea id="response-${meta.messageId}" rows="4" cols="50" style="width:100%;"></textarea><br>
-			<button type="button" onclick="(function(){
-				const response = document.getElementById('response-${meta.messageId}').value;
-				console.log('posting message for thread id: ${meta.threadId} and message id: ${meta.messageId}');
-				const params = {
-					type: 'tool',
-					payload: {
-						toolName: 'gmail-draft-response',
-						params: {
-							address: '${meta.senderAddress}',
-							threadId: '${meta.threadId}',
-							subject: '${meta.subject}',
-							messageId: '${meta.messageId}',
-							content: response
-						}
-					}
-				};
-				console.log(params);
-				window.top.postMessage(params, '*');
-			})()">Send</button>
-
-		</div>
-	</div>
-	`;
+	const snippetValsPromises = bodies.filter(Boolean).map(async (vv) => {
+		const htmlFilePath = path.join(
+			__dirname,
+			"mcp-ui-interfaces/gmail-threads.html",
+		);
+		const templatedHtml = await readFile(htmlFilePath);
+		const view = {
+			...meta,
+			body: vv,
+			metaStringJson: JSON.stringify(meta, null, 2),
+		};
+		const output = await Mustache.render(templatedHtml, view);
+		console.log(output);
+		return output;
 	});
-	return snippetVals;
+	return Promise.all(snippetValsPromises);
 }
-
-const gmailDraftToolName = "gmail-draft-response";
-const gmailDraftToolSchema = z.object({
-	address: z
-		.string()
-		.email()
-		.describe("the address of the sender of the original email"),
-	content: z.string().describe("the content of the response"),
-	threadId: z.string().describe("the threadId of the original message"),
-	messageId: z.string().describe("the messageId of the original message"),
-	subject: z.string().describe("the subject of the original message"),
-});
-
-const generateDraftEmailToolCall = (
-	params: z.infer<typeof gmailDraftToolSchema>,
-) => {
-	return {
-		type: "tool",
-		payload: {
-			toolName: gmailDraftToolName,
-			params,
-		},
-	};
-};
 
 export async function getThreadHtml(
 	auth: Auth.OAuth2Client,

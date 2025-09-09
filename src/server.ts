@@ -1,10 +1,18 @@
 import { createUIResource } from "@mcp-ui/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+import path from "path";
 import { z } from "zod";
 import { authenticateTool, authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
-import { getThread, listThreadSnippets } from "./gmail-read.js";
 import { getThreadHtml, listThreadSnippetsHtml } from "./gmail-read-html.js";
+import { getThread, listThreadSnippets } from "./gmail-read.js";
+import { readFile } from "./utils.js";
+
+// Path to the JavaScript file
+
+// Read the file as text
+
 // Create server instance
 export const server = new McpServer({
 	name: "Tanzim's tools",
@@ -164,31 +172,55 @@ server.tool(
 	},
 );
 
-const remoteDomScript = `
-  const button = document.createElement('ui-button');
-  button.setAttribute('label', 'Yo Click me for a top tool call!');
-  button.addEventListener('press', () => {
-		console.log('I was clicked');
-    window.top.postMessage({ type: 'tool', payload: { toolName: 'uiInteraction', params: { action: 'button-click', from: 'remote-dom' } } }, '*');
-  });
-  root.appendChild(button);
-`;
-
 server.tool(
 	"greet",
 	{
-		title: "Greet",
+		title: "Greet with react",
 		description: "A simple tool that returns a UI resource.",
 		inputSchema: {},
 	},
 	async () => {
 		// Create the UI resource to be returned to the client (this is the only part specific to MCP-UI)
+		const jsFilePath = path.join(
+			__dirname,
+			"mcp-ui-interfaces/mcp-ui-greet.js",
+		);
 		const uiResource = createUIResource({
 			uri: "ui://remote-component/action-button",
 			content: {
 				type: "remoteDom",
-				script: remoteDomScript,
+				script: await readFile(jsFilePath),
 				framework: "react", // or 'webcomponents'
+			},
+			encoding: "text",
+		});
+
+		return {
+			content: [uiResource],
+		};
+	},
+);
+
+server.tool(
+	"toggle-theme",
+	{
+		title: "Toggle themes using MCP UI",
+		description:
+			"A simple tool that returns a UI resource with a simply toggle",
+		inputSchema: {},
+	},
+	async () => {
+		// Create the UI resource to be returned to the client (this is the only part specific to MCP-UI)
+		const jsFilePath = path.join(
+			__dirname,
+			"mcp-ui-interfaces/mcp-ui-toggle-theme.js",
+		);
+		const uiResource = createUIResource({
+			uri: "ui://remote-component/toggle-theme-button",
+			content: {
+				type: "remoteDom",
+				script: await readFile(jsFilePath),
+				framework: "react",
 			},
 			encoding: "text",
 		});

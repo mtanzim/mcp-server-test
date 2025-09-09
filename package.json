@@ -28,6 +28,7 @@
 		"express": "^5.1.0",
 		"googleapis": "105",
 		"morgan": "^1.10.0",
+		"mustache": "^4.2.0",
 		"zod": "^3.24.2"
 	},
 	"devDependencies": {
