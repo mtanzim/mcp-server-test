@@ -5,7 +5,7 @@ import path from "path";
 import { z } from "zod";
 import { authenticateTool, authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
-import { getThreadHtml, listThreadSnippetsHtml } from "./gmail-read-html.js";
+import { getThreadHtml, listThreadSnippetJS, listThreadSnippetsHtml } from "./gmail-read-html.js";
 import { getThread, listThreadSnippets } from "./gmail-read.js";
 import { readFile } from "./utils.js";
 
@@ -320,6 +320,57 @@ server.tool(
 					{
 						type: "text",
 						text: snippetText,
+					},
+				],
+			};
+		}
+	},
+);
+
+server.tool(
+	"gmail-thread-snippets-react",
+	`Get my gmail snippets from threads from the last days. ${authHint}`,
+	{
+		days: z
+			.number()
+			.min(1)
+			.max(60)
+			.default(3)
+			.describe("The number days of emails to read (1 to 60)"),
+	},
+	async ({ days }) => {
+		let remoteDomScript = "";
+		try {
+			remoteDomScript = await authorize().then((authedClient) => {
+				if (!authedClient) {
+					return authErrorHint;
+				}
+				return listThreadSnippetJS(authedClient, days);
+			});
+			const uiResource = createUIResource({
+				uri: "ui://remote-component/gmail-threads",
+				content: {
+					type: "remoteDom",
+					script: remoteDomScript,
+					framework: "react", // or 'webcomponents'
+				},
+				encoding: "text",
+			});
+
+			return {
+				content: [uiResource],
+			};
+		} catch (err: unknown) {
+			console.error(err);
+			remoteDomScript = "Something went wrong. Cannot get gmail message threads.";
+			if (err instanceof Error) {
+				remoteDomScript = `${remoteDomScript} Error: ${err.message}`;
+			}
+			return {
+				content: [
+					{
+						type: "text",
+						text: remoteDomScript,
 					},
 				],
 			};

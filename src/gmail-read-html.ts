@@ -3,6 +3,21 @@ import Mustache from "mustache";
 import { readFile } from "./utils.js";
 
 import path from "path";
+
+export async function listThreadSnippetJS(
+	auth: Auth.OAuth2Client,
+	days: number,
+): Promise<string> {
+	const gmail = google.gmail({ version: "v1", auth });
+	const snippets = await getThreadSnippetsJS(gmail, days);
+	const snippetsSerialized: Record<string, string[]> = {};
+	for (const [k, v] of snippets.entries()) {
+		snippetsSerialized[k] = v;
+	}
+	return Object.values(snippetsSerialized).flat().join("\n\n\n");
+	// return Object.values(snippetsSerialized).flat()[0];
+}
+
 export async function listThreadSnippetsHtml(
 	auth: Auth.OAuth2Client,
 	days: number,
@@ -14,6 +29,39 @@ export async function listThreadSnippetsHtml(
 		snippetsSerialized[k] = v;
 	}
 	return Object.values(snippetsSerialized).flat().join("\n\n\n");
+}
+
+async function getThreadSnippetsJS(
+	gmail: gmail_v1.Gmail,
+	days: number,
+	pageToken?: string,
+	page = 0,
+	disablePagination = true,
+): Promise<Map<string, string[]>> {
+	const res = await gmail.users.messages.list({
+		userId: "me",
+		q: `newer_than:${days}d`,
+		labelIds: ["INBOX"],
+		pageToken: pageToken,
+		maxResults: 3,
+	});
+	const [snippets, fullMessageRes] = await processMessageThreads(
+		gmail,
+		res.data?.messages || [],
+	);
+	// modify the final snippets
+	for (const [k, v] of snippets) {
+		snippets.set(k, await parseSnippetJS(k, v, fullMessageRes));
+	}
+	const nextToken = res.data.nextPageToken;
+	if (nextToken && !disablePagination) {
+		const res = await getThreadSnippetsJS(gmail, days, nextToken, page + 1);
+		for (const [k, v] of res) {
+			snippets.set(k, v);
+		}
+	}
+
+	return snippets;
 }
 
 async function getThreadSnippetsHtml(
@@ -47,6 +95,44 @@ async function getThreadSnippetsHtml(
 	}
 
 	return snippets;
+}
+
+async function parseSnippetJS(
+	threadId: string,
+	bodies: string[],
+	fullMessageRes: Map<string, gmail_v1.Schema$Message[]>,
+) {
+	const fullMessage = fullMessageRes.get(threadId);
+	const meta = {
+		senderAddress:
+			fullMessage
+				?.at(-1)
+				?.payload?.headers?.find((h) => h?.name?.startsWith("From"))?.value ||
+			"",
+		subject:
+			fullMessage
+				?.at(-1)
+				?.payload?.headers?.find((h) => h?.name?.startsWith("Subject"))
+				?.value || "",
+		threadId,
+		messageId: fullMessage?.at(-1)?.id,
+	};
+	const snippetValsPromises = bodies.filter(Boolean).map(async (vv) => {
+		const htmlFilePath = path.join(
+			__dirname,
+			"mcp-ui-interfaces/gmail-thread.js",
+		);
+		const templatedJS = (await readFile(htmlFilePath)) || "";
+		const view = {
+			...meta,
+			body: vv,
+			jsonStringifiedMeta: JSON.stringify(meta, null, 2),
+		};
+		const output = await Mustache.render(templatedJS, view);
+		console.log(output);
+		return output;
+	});
+	return Promise.all(snippetValsPromises);
 }
 
 async function parseSnippetHtml(
