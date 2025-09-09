@@ -1,8 +1,8 @@
 <div>
-  <h1>{subject}}</h1>
-  <h2>{senderAddress}}</h2>
-  <p>${body}</p>
-  
+  <h1>{{subject}}</h1>
+  <h2>{{senderAddress}}</h2>
+  <p>{{body}}</p>
+
   <details>
     <summary>Metadata</summary>
     <code>{{jsonStringifiedMeta}}</code>
@@ -29,10 +29,10 @@
 					payload: {
 						toolName: 'gmail-draft-response',
 						params: {
-							address: '{senderAddress}}',
-							threadId: '{threadId}}',
-							subject: '{subject}}',
-							messageId: '{messageId}}',
+							address: '{{senderAddress}}',
+							threadId: '{{threadId}}',
+							subject: '{{subject}}',
+							messageId: '{{messageId}}',
 							content: response
 						}
 					}

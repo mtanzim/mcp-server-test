@@ -79,7 +79,7 @@ async function parseSnippetHtml(
 		const view = {
 			...meta,
 			body: vv,
-			metaStringJson: JSON.stringify(meta, null, 2),
+			jsonStringifiedMeta: JSON.stringify(meta, null, 2),
 		};
 		const output = await Mustache.render(templatedHtml, view);
 		console.log(output);
