@@ -138,3 +138,4 @@ build
 token.json
 tokens.json
 credentials.json
+.DS_store
