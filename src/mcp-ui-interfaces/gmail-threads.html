@@ -29,7 +29,8 @@
 					payload: {
 						toolName: 'gmail-draft-response',
 						params: {
-							address: '{{senderAddress}}',
+              // todo: this is broken in the results, hacking for now fix it
+							address: 'tanzim@cohere.com',
 							threadId: '{{threadId}}',
 							subject: '{{subject}}',
 							messageId: '{{messageId}}',
@@ -67,7 +68,7 @@
         const params = {
 					type: 'link',
 					payload: {
-            url:'https://mail.google.com/mail/u/0/#inbox/1993a34ef5da333e'
+            url:'https://mail.google.com/mail/u/0/#inbox/{{threadId}}'
 					}
 				};
 				console.log(params);
