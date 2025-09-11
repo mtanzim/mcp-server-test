@@ -63,7 +63,7 @@
       type="button"
       onclick="(function(){
 
-        console.log(`posting message for thread id: {{threadId}} and message id: {{messageId}}`);
+        console.log(`posting link message for thread id: {{threadId}} and message id: {{messageId}}`);
         const params = {
 					type: 'link',
 					payload: {
@@ -74,7 +74,7 @@
 				window.top.postMessage(params, '*');
 			})()"
     >
-      Ask the model to read and summarize this email
+      View the thread externally
     </button>
   </div>
 </div>
