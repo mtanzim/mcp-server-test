@@ -2,7 +2,7 @@ import { type Auth, type gmail_v1, google } from "googleapis";
 import Mustache from "mustache";
 import { readFile } from "./utils.js";
 
-import path from "path";
+import path from "node:path";
 
 export async function listThreadSnippetJS(
 	auth: Auth.OAuth2Client,

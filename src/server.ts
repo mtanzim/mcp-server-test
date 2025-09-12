@@ -1,13 +1,21 @@
 import { createUIResource } from "@mcp-ui/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import path from "path";
+import path from "node:path";
 import { z } from "zod";
 import { authenticateTool, authorize } from "./gmail-auth.js";
 import { draftEmail } from "./gmail-compose.js";
-import { getThreadHtml, listThreadSnippetJS, listThreadSnippetsHtml } from "./gmail-read-html.js";
+import {
+	getThreadHtml,
+	listThreadSnippetJS,
+	listThreadSnippetsHtml,
+} from "./gmail-read-html.js";
 import { getThread, listThreadSnippets } from "./gmail-read.js";
 import { readFile } from "./utils.js";
+
+declare module "@mcp-ui/server" {
+	export const createUIResource: any;
+}
 
 // Path to the JavaScript file
 
@@ -362,7 +370,8 @@ server.tool(
 			};
 		} catch (err: unknown) {
 			console.error(err);
-			remoteDomScript = "Something went wrong. Cannot get gmail message threads.";
+			remoteDomScript =
+				"Something went wrong. Cannot get gmail message threads.";
 			if (err instanceof Error) {
 				remoteDomScript = `${remoteDomScript} Error: ${err.message}`;
 			}

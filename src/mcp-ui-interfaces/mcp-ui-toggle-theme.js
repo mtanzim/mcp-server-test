@@ -28,24 +28,24 @@ toggleButton.setAttribute("label", "🌙 Switch to Dark Mode");
 
 // Add the toggle functionality
 toggleButton.addEventListener("press", () => {
-  isDarkMode = !isDarkMode;
+	isDarkMode = !isDarkMode;
 
-  if (isDarkMode) {
-    // Switch to dark mode
-    logo.setAttribute("src", "https://block.github.io/goose/img/logo_dark.png");
-    logo.setAttribute("alt", "Goose Logo (Dark Mode)");
-    toggleButton.setAttribute("label", "☀️ Switch to Light Mode");
-  } else {
-    // Switch to light mode
-    logo.setAttribute(
-      "src",
-      "https://block.github.io/goose/img/logo_light.png"
-    );
-    logo.setAttribute("alt", "Goose Logo (Light Mode)");
-    toggleButton.setAttribute("label", "🌙 Switch to Dark Mode");
-  }
+	if (isDarkMode) {
+		// Switch to dark mode
+		logo.setAttribute("src", "https://block.github.io/goose/img/logo_dark.png");
+		logo.setAttribute("alt", "Goose Logo (Dark Mode)");
+		toggleButton.setAttribute("label", "☀️ Switch to Light Mode");
+	} else {
+		// Switch to light mode
+		logo.setAttribute(
+			"src",
+			"https://block.github.io/goose/img/logo_light.png",
+		);
+		logo.setAttribute("alt", "Goose Logo (Light Mode)");
+		toggleButton.setAttribute("label", "🌙 Switch to Dark Mode");
+	}
 
-  console.log("Logo toggled to:", isDarkMode ? "dark" : "light", "mode");
+	console.log("Logo toggled to:", isDarkMode ? "dark" : "light", "mode");
 });
 
 // Assemble the UI
