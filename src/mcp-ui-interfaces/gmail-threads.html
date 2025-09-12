@@ -1,0 +1,81 @@
+<div>
+  <h1>{{subject}}</h1>
+  <h2>{{senderAddress}}</h2>
+  <p>{{body}}</p>
+
+  <details>
+    <summary>Metadata</summary>
+    <code>{{jsonStringifiedMeta}}</code>
+  </details>
+  <div
+    id="email-{threadId}}"
+    style="border: 1px solid #ccc; padding: 10px; margin-top: 10px"
+  >
+    <label for="response-{{messageId}}">Your Response:</label><br />
+    <textarea
+      id="response-{{messageId}}"
+      rows="4"
+      cols="50"
+      style="width: 100%"
+    ></textarea
+    ><br />
+    <button
+      type="button"
+      onclick="(function(){
+				const response = document.getElementById('response-{{messageId}}').value;
+				console.log('posting direct tool message for thread id: {{threadId}} and message id: {{messageId}}');
+				const params = {
+					type: 'tool',
+					payload: {
+						toolName: 'gmail-draft-response',
+						params: {
+              // todo: this is broken in the results, hacking for now fix it
+							address: 'tanzim@cohere.com',
+							threadId: '{{threadId}}',
+							subject: '{{subject}}',
+							messageId: '{{messageId}}',
+							content: response
+						}
+					}
+				};
+				console.log(params);
+				window.top.postMessage(params, '*');
+			})()"
+    >
+      Create a draft in response
+    </button>
+    <button
+      type="button"
+      onclick="(function(){
+				console.log('posting prompt message for thread id: {{threadId}} and message id: {{messageId}}');
+				const params = {
+					type: 'prompt',
+					payload: {
+            prompt: `I would like to get more details on this thread. It has the following threadId: {{threadId}}. Feel free to use the available tools such as gmail-thread-full.`
+					}
+				};
+				console.log(params);
+				window.top.postMessage(params, '*');
+			})()"
+    >
+      Ask the model to read and summarize this email
+    </button>
+    <button
+      type="button"
+      onclick="(function(){
+
+        console.log(`posting link message for thread id: {{threadId}} and message id: {{messageId}}`);
+        const params = {
+					type: 'link',
+					payload: {
+            url:'https://mail.google.com/mail/u/0/#inbox/{{threadId}}'
+					}
+				};
+				console.log(params);
+				window.top.postMessage(params, '*');
+			})()"
+    >
+      View the thread externally
+    </button>
+  </div>
+</div>
