@@ -17,10 +17,6 @@ declare module "@mcp-ui/server" {
 	export const createUIResource: any;
 }
 
-// Path to the JavaScript file
-
-// Read the file as text
-
 // Create server instance
 export const server = new McpServer({
 	name: "Tanzim's tools",
