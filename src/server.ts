@@ -197,8 +197,7 @@ server.tool(
         }
         return listThreadSnippetsHtml(authedClient, days);
       });
-      const uiResource: Resource = {
-        name: "gmail-snippets",
+      const uiResource = {
         uri: "file:///snippets.html",
         title: "Gmail Thread Snippets",
         mimeType: "text/html",
@@ -213,7 +212,7 @@ server.tool(
       return {
         content: [
           {
-            type: "resource",
+            type: "resource" as const,
             resource: uiResource,
           },
         ],
@@ -235,151 +234,3 @@ server.tool(
     }
   }
 );
-
-// server.tool(
-//   "gmail-thread-html",
-//   `Get the full messages for a single thread in html format`,
-//   {
-//     threadId: z
-//       .string()
-//       .describe(
-//         "The id of the thread we are trying to read. It can be obtained from the gmail-thread-snippets tool."
-//       ),
-//   },
-//   async ({ threadId }) => {
-//     try {
-//       const snippetTextHtml = await authorize().then((authedClient) =>
-//         authedClient ? getThreadHtml(authedClient, threadId) : authErrorHint
-//       );
-//       const uiResource = createUIResource({
-//         uri: "ui://remote-component/gmail-threads",
-//         content: {
-//           type: "rawHtml",
-//           htmlString: snippetTextHtml,
-//         },
-//         encoding: "text",
-//       });
-
-//       return {
-//         content: [uiResource],
-//       };
-//     } catch (err: unknown) {
-//       console.error(err);
-//       let snippetText =
-//         "Something went wrong. Cannot get gmail message threads.";
-//       if (err instanceof Error) {
-//         snippetText = `${snippetText} Error: ${err.message}`;
-//       }
-//       return {
-//         content: [
-//           {
-//             type: "text",
-//             text: snippetText,
-//           },
-//         ],
-//       };
-//     }
-//   }
-// );
-
-// server.tool(
-//   "gmail-thread-snippets-html",
-//   `Get my gmail snippets from threads from the last days. ${authHint}`,
-//   {
-//     days: z
-//       .number()
-//       .min(1)
-//       .max(60)
-//       .default(3)
-//       .describe("The number days of emails to read (1 to 60)"),
-//   },
-//   async ({ days }) => {
-//     let snippetText = "";
-//     try {
-//       snippetText = await authorize().then((authedClient) => {
-//         if (!authedClient) {
-//           return authErrorHint;
-//         }
-//         return listThreadSnippetsHtml(authedClient, days);
-//       });
-//       const uiResource = createUIResource({
-//         uri: "ui://remote-component/gmail-threads",
-//         content: {
-//           type: "rawHtml",
-//           htmlString: snippetText,
-//         },
-//         encoding: "text",
-//       });
-
-//       return {
-//         content: [uiResource],
-//       };
-//     } catch (err: unknown) {
-//       console.error(err);
-//       snippetText = "Something went wrong. Cannot get gmail message threads.";
-//       if (err instanceof Error) {
-//         snippetText = `${snippetText} Error: ${err.message}`;
-//       }
-//       return {
-//         content: [
-//           {
-//             type: "text",
-//             text: snippetText,
-//           },
-//         ],
-//       };
-//     }
-//   }
-// );
-
-// server.tool(
-//   "gmail-thread-snippets-react",
-//   `Get my gmail snippets from threads from the last days. ${authHint}`,
-//   {
-//     days: z
-//       .number()
-//       .min(1)
-//       .max(60)
-//       .default(3)
-//       .describe("The number days of emails to read (1 to 60)"),
-//   },
-//   async ({ days }) => {
-//     let remoteDomScript = "";
-//     try {
-//       remoteDomScript = await authorize().then((authedClient) => {
-//         if (!authedClient) {
-//           return authErrorHint;
-//         }
-//         return listThreadSnippetJS(authedClient, days);
-//       });
-//       const uiResource = createUIResource({
-//         uri: "ui://remote-component/gmail-threads",
-//         content: {
-//           type: "remoteDom",
-//           script: remoteDomScript,
-//           framework: "react", // or 'webcomponents'
-//         },
-//         encoding: "text",
-//       });
-
-//       return {
-//         content: [uiResource],
-//       };
-//     } catch (err: unknown) {
-//       console.error(err);
-//       remoteDomScript =
-//         "Something went wrong. Cannot get gmail message threads.";
-//       if (err instanceof Error) {
-//         remoteDomScript = `${remoteDomScript} Error: ${err.message}`;
-//       }
-//       return {
-//         content: [
-//           {
-//             type: "text",
-//             text: remoteDomScript,
-//           },
-//         ],
-//       };
-//     }
-//   }
-// );
