@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import express from "express";
+import express, { type Request } from "express";
 
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
@@ -13,7 +13,13 @@ dotenv.config();
 const startHTTP = () => {
 	const app = express();
 	app.use(express.json());
-	app.use(morgan("tiny"));
+	morgan.token("body", (req: Request) => JSON.stringify(req.body));
+
+	app.use(
+		morgan(
+			":method :url :status :res[content-length] - :response-time ms :body",
+		),
+	);
 
 	// Map to store transports by session ID
 	const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
